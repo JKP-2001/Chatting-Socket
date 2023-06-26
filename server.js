@@ -40,7 +40,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
 
     if (req.originalMethod !== "GET" && req.headers["security-key"] !== process.env.SECURITY_KEY) {
-        res.json({"message": "You are not authorized"});
+        res.json({ "message": "You are not authorized" });
         return;
     }
     next();
@@ -84,12 +84,12 @@ io.on("connection", (socket) => {
 
     socket.on("typing", (chatId) => {
         console.log("typing")
-        socket.in(chatId).emit("typing");
+        socket.in(chatId).emit("typing", chatId);
     })
 
     socket.on("stop typing", (chatId) => {
         console.log("stop typing")
-        socket.in(chatId).emit("stop typing");
+        socket.in(chatId).emit("stop typing", chatId);
     })
 
 
@@ -100,13 +100,13 @@ io.on("connection", (socket) => {
 
         // console.log({newMessage})
 
-        if(chat.users.length === 0){
+        if (chat.users.length === 0) {
             return console.log("Chat.users not defined");
         }
 
         chat.users.forEach((user) => {
-            console.log({user})
-            if(user._id == newMessage.sender._id){
+            console.log({ user })
+            if (user._id == newMessage.sender._id) {
                 return;
             }
             socket.in(user._id).emit("message received", newMessage);
@@ -114,6 +114,54 @@ io.on("connection", (socket) => {
         )
     })
 
-    
+    socket.on("enter a group", (groupId) => {
+        socket.join(groupId);
+        console.log("joined group " + groupId);
+        socket.emit("Group joined");
+    });
+
+    socket.on("group message detected", (data) => {
+        console.log("new group message received")
+        console.log(data);
+        socket.in(data.grpId).emit("group message received",(data));
+    });
+
+    socket.on("assignment detected", (data) => {
+        console.log("new assignment received")
+        socket.in(data.grpId).emit("assignment received",(data));
+    });
+
+    socket.on("member added", (data) => {
+        console.log("new member added")
+        socket.in(data.grpId).emit("member added to grp",(data));
+    });
+
+    socket.on("code reset", (data) => {
+        console.log("code resetted")
+        socket.in(data.grpId).emit("code resetted",(data));
+    });
+
+    socket.on("assignment assign", (data) => {
+        console.log("assignment assigned")
+        console.log({member:data});
+        socket.emit("Assignment Assign",(data));
+    });
+
+
+    socket.on("open assignment", (data) => {
+        socket.join(data.assId);
+        console.log("joined assignment " + data.assId);
+        socket.emit("Assignment Opened");
+    });
+
+    socket.on("assignment submit", (data) => {
+        console.log("assignment submitted")
+        console.log({assId:data.assId});
+        socket.in(data.assId).emit("Assignment Submit",(data));
+    });
+
+
+
+    // socket.on("new group message", (newMessage) => {
 
 });
